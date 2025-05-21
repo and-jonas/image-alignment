@@ -1,0 +1,10 @@
+numpy=2.2.4
+pillow=11.1.0
+natsort=8.4.0
+opencv-python=4.11.0.86
+pandas=2.2.3
+scikit-image=0.25.2
+scipy=1.15.2
+tqdm=4.67.1
+matplotlib=3.10.1
+imagio=2.37.0
