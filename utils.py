@@ -8,6 +8,8 @@ import copy
 import numpy as np
 
 from scipy.spatial import distance as dist
+from scipy.spatial import Delaunay
+
 
 def get_series(path_images):
     """
@@ -32,9 +34,43 @@ def get_series(path_images):
     return id_series
 
 
+def triangle_aspect_ratio(triangle):
+    # Side lengths
+    a = np.linalg.norm(triangle[0] - triangle[1])
+    b = np.linalg.norm(triangle[1] - triangle[2])
+    c = np.linalg.norm(triangle[2] - triangle[0])
+    s = 0.5 * (a + b + c)  # semi-perimeter
+
+    # Heron's formula for area
+    area = max(np.sqrt(max(s * (s - a) * (s - b) * (s - c), 0)), 1e-8)
+
+    # Height from longest side (h = 2A / base)
+    longest = max(a, b, c)
+    height = 2 * area / longest
+
+    aspect_ratio = longest / height
+    return aspect_ratio
 
 
+def build_custom_piecewise_transform(tri, matrices, valid_indices):
+    """Return a transform function to use with skimage.transform.warp"""
+    
+    # Map from full simplex index to index in filtered matrices
+    index_map = {orig_idx: i for i, orig_idx in enumerate(valid_indices)}
 
+    def transform_fn(coords):
+        transformed = np.zeros_like(coords)
+        for i, pt in enumerate(coords):
+            simplex = tri.find_simplex(pt)
+            if simplex == -1 or simplex not in index_map:
+                transformed[i] = pt  # leave unchanged
+                continue
+            matrix = matrices[index_map[simplex]]
+            warped_pt = matrix @ np.array([pt[0], pt[1], 1.0])
+            transformed[i] = warped_pt[:2]
+        return transformed
+
+    return transform_fn
 
 
 def make_bbox_overlay(img, pts, box):
